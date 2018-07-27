@@ -1,0 +1,23 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>{{.Title}}</title>
+</head>
+<body>
+{{if .Authenticate}}
+<h1>{{.Title}}</h1>
+<form action="{{.Action}}" method="POST">
+<input type="hidden" name="consumer_key" value="{.ConsumerKey}" />
+Log in here
+<div><input name="username" type="text" /></div>
+<div><input name="password" type="password" /></div>
+Allow {{.Application}} to access your data?
+<div><input name="authorize" value="1" type="radio"> Yes</div>
+santers
+<div><input name="authorize" value="0" type="radio"> No</div>
+<input type="submit" value="Login" />
+{{end}}
+</form>
+</body>
+</html>

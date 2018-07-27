@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>API Interface</title>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js">
+    </script>
+    <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js">
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-12-lg">
+                <h1>API Interface</h1>
+                <div class="alert alert-warning" id="api-messages" role="alert"></div>
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="active">
+                        <a href="#create" role="tab" datatoggle="tab">Create User</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="create">
+                        <div class="form-group">
+                            <label for="createEmail">Email</label>
+                            <input type="text" class="form-control" id="createEmail" placeholder="Enter email">
+                        </div>
+                        <div class="form-group">
+                            <label for="createUsername">Username</label>
+                            <input type="text" class="form-control" id="createUsername" placeholder="Enter username">
+                        </div>
+                        <div class="form-group">
+                            <label for="createFirst">First Name</label>
+                            <input type="text" class="form-control" id="createFirst" placeholder="First Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="createLast">Last Name</label>
+                            <input type="text" class="form-control" id="createLast" placeholder="Last Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="createLast">pasword</label>
+                            <input type="password" class="form-control" id="createPassword" placeholder="password">
+                        </div>
+                        <button type="submit" onclick="userCreate();" class="btn btnsuccess">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function userCreate() {
+            action = "https://localhost:8080/api/users";
+            postData = {};
+            postData.email = $('#createEmail').val();
+            postData.user = $('#createUsername').val();
+            postData.first = $('#createFirst').val();
+            postData.last = $('#createLast').val();
+            postData.password = $('#createPassword').val();
+            var formData = new FormData($('form')[0]);
+            $.ajax({
+                url: action, //Server script to process data
+                dataType: 'json',
+                type: 'POST',
+                statusCode: {
+                    409: function () {
+                        $('#api-messages').html('Email address or nickname alreadyexists!');
+                        $('#api-messages').removeClass('alert-success').addClass('alertwarning');
+                        $('#api-messages').show();
+                    },
+                    200: function () {
+                        $('#api-messages').html('User created successfully!');
+                        $('#api-messages').removeClass('alert-warning').addClass('alertsuccess');
+                        $('#api-messages').show();
+                    }
+                }
+            })
+        }
+    </script>
+</body>
+
+</html>
