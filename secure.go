@@ -22,5 +22,6 @@ func redirectNoneSecured(w http.ResponseWriter, r *http.Request) {
 	log.Println("none secured request initiated, redirecting.")
 	//fmt.Fprintln(w, "you are not secured press on ok to go to secured mode")
 	redirectURL := SSLprotocol + serverName + r.RequestURI
+	fmt.Println(redirectURL, "eeeeeeeeeeee")
 	http.Redirect(w, r, redirectURL, http.StatusOK)
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/gilons/apimaster/authenticate"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
-	"github.com/kabukky/httpscerts"
 )
 
 var database *sql.DB
@@ -41,9 +40,13 @@ func init() {
 	routes.HandleFunc("/api/users", api.UserInfo).Methods("OPTIONS")
 	routes.HandleFunc("/api/authorize", authenticate.ApplicationAuthorize).Methods("POST")
 	routes.HandleFunc("/api/authorize", authenticate.ApplicationAuthenticate).Methods("GET")
+	routes.HandleFunc("/connector/{service:[a-z]+}", ServiceAuthorize).Methods("GET")
+	routes.HandleFunc("/connect/{service:[a-z]+}", ServiceConnect).Methods("GET")
+	//routes.HandleFunc("/oauth/token", CkeckCredentials).Methods("POST")
 	http.Handle("/", routes)
 
 }
+
 func pathMatch(pattern, path string) bool {
 	if len(pattern) == 0 {
 		// should not happen
@@ -168,14 +171,6 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 }
 func main() {
-	//checking if the cert files are available
-	err := httpscerts.Check("cert.pem", "key.pem")
-	if err != nil {
-		err := httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:8081")
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-	}
 	fmt.Println("gillons test")
 	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		message := API{"Hello, world!"}
@@ -186,7 +181,7 @@ func main() {
 		fmt.Fprintf(w, string(output))
 	})
 	wg := sync.WaitGroup{}
-	log.Println("starting redirection server,try ro access @http:")
+	log.Println("starting redirection server,try to access @http:")
 	wg.Add(1)
 	go func() {
 		http.ListenAndServe(HTTPport, http.HandlerFunc(redirectNoneSecured))
@@ -199,7 +194,7 @@ func main() {
 	}()
 	wg.Add(1)
 	go func() {
-		http.ListenAndServe(":8080", nil)
+		http.ListenAndServeTLS(":8080", "cert.pem", "key.pem", nil)
 		wg.Done()
 	}()
 	wg.Wait()
