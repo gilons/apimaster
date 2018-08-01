@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+//Token strunct
 type Token struct {
 	Valid       bool
 	Created     int64
@@ -24,14 +25,15 @@ func init() {
 	nonces = make(map[string]Token)
 }
 
-func ValidateSignature(consumer_key string, consumer_secret string, timestamp string,
-	nonce string, signature string, for_user int) (Token, error) {
+//ValidateSignature function
+func ValidateSignature(consmerKey string, consumerSecret string, timeStamp string,
+	nonce string, signature string, forUser int) (Token, error) {
 	var hasKey []byte
 	t := Token{}
 	t.Created = time.Now().UTC().Unix()
 	t.Expires = t.Created + 600
-	t.ForUser = for_user
-	qualifiedMessage := []string{consumer_key, consumer_secret, timestamp, nonce}
+	t.ForUser = forUser
+	qualifiedMessage := []string{consmerKey, consumerSecret, timeStamp, nonce}
 	fullyQualified := strings.Join(qualifiedMessage, "")
 	fmt.Println(fullyQualified)
 	mac := hmac.New(sha1.New, hasKey)
@@ -42,15 +44,16 @@ func ValidateSignature(consumer_key string, consumer_secret string, timestamp st
 		t.Valid = true
 		t.AccessToken = GenerateToken()
 		return t, nil
-	} else {
-		err := errors.New("Unauthorised")
-		t.Valid = false
-		t.AccessToken = ""
-		nonces[nonce] = t
-		return t, err
 	}
+	err := errors.New("Unauthorised")
+	t.Valid = false
+	t.AccessToken = ""
+	nonces[nonce] = t
+	return t, err
+
 }
 
+//GenerateToken Generates a new Token String
 func GenerateToken() string {
 	var token []byte
 	rand.Seed(time.Now().UTC().UnixNano())

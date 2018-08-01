@@ -7,10 +7,14 @@ import (
 )
 
 const (
-	serverName   = "localhost"
-	SSLport      = ":443"
-	HTTPport     = ":8000"
-	SSLprotocol  = "https://"
+	serverName = "localhost"
+	//SSLport store the Default ssl connection port :443
+	SSLport = ":443"
+	//HTTPport stores the de default Http port :8080
+	HTTPport = ":8000"
+	//SSLprotocol holds the default SSl protocol https://
+	SSLprotocol = "https://"
+	//HTTPprotocol holds the default http protocol http://
 	HTTPprotocol = "http://"
 )
 

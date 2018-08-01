@@ -11,6 +11,7 @@ import (
 
 	"github.com/gilons/apimaster/api"
 	"github.com/gilons/apimaster/pseudoauth"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 const randomLength = 16
@@ -31,6 +32,15 @@ func GenerateSalt(length int) string {
 	}
 
 	return string(salt)
+}
+
+//GenerateSessionID function is a function that genrates a random sesssion id based on uuid package
+func GenerateSessionID() string {
+	sessionID, err := uuid.NewV4()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	return sessionID.String()
 }
 
 //GenerateHash is a function tha is used to generate a hash for a  password given it salt.
@@ -54,14 +64,19 @@ func ReturnPassword(password string) (string, string) {
 
 }
 
+//OauthAccessResponse strunct constains AccessToken member Function to store access Token ULL
 type OauthAccessResponse struct {
 	AccessToken string
 }
+
+//CreateResponse struct implements a response containing Error and ErrorCode member
 type CreateResponse struct {
 	Error     string `json:"error"`
-	ErrorCode int64  "json:`errorcode`"
+	ErrorCode int64  `json:"errorcode"`
 }
 
+//CheckCredentials function checks the credential namely
+//Consumer_secrete Given a consumer_key
 func CheckCredentials(w http.ResponseWriter, r *http.Request) {
 	var Credentials string
 	Response := CreateResponse{}

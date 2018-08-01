@@ -16,6 +16,7 @@ Log in here
 <div><input name="password" type="password" /></div>
 Allow {{.Application}} to access your data?
 <div><input name="authorize" value="1" type="radio"> Yes</div>
+<input type="hidden" name="auth_type" value="{{.PageType}}" />
 santers
 <div><input name="authorize" value="0" type="radio"> No</div>
 <div class="g-signin2" data-onsuccess="onSignIn">sign in with google</div>

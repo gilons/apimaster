@@ -9,9 +9,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gilons/apimaster/api"
 	"github.com/gilons/apimaster/authenticate"
+	"github.com/gilons/apimaster/session"
+	"github.com/gilons/apimaster/status"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
@@ -28,6 +31,9 @@ type CreateOutput struct {
 	Output string `json:"output"`
 }
 
+//Session is a Variable of type UserSession defined in the session package
+var Session session.UserSession
+
 func init() {
 	api.InitialiseDB()
 	database = api.Database
@@ -40,9 +46,16 @@ func init() {
 	routes.HandleFunc("/api/users", api.UserInfo).Methods("OPTIONS")
 	routes.HandleFunc("/api/authorize", authenticate.ApplicationAuthorize).Methods("POST")
 	routes.HandleFunc("/api/authorize", authenticate.ApplicationAuthenticate).Methods("GET")
-	routes.HandleFunc("/connector/{service:[a-z]+}", ServiceAuthorize).Methods("GET")
+	routes.HandleFunc("/authorize/{service:[a-z]+}", ServiceAuthorize).Methods("GET")
 	routes.HandleFunc("/connect/{service:[a-z]+}", ServiceConnect).Methods("GET")
+	routes.HandleFunc("/api/statuses", status.StatusCreate).Methods("POST")
+	routes.HandleFunc("/api/statuses", status.StatusRetrieve).Methods("GET")
+	routes.HandleFunc("/api/statuses/{id:[0-9]+}", status.StatusUpdate).Methods("PUT")
+	routes.HandleFunc("/api/statuses/{id:[0-9]+}", status.StatusDelete).Methods("DELETE")
 	//routes.HandleFunc("/oauth/token", CkeckCredentials).Methods("POST")
+	routes.HandleFunc("/api/connections", ConnectionsCreate).Methods("POST")
+	//routes.HandleFunc("/api/connections", ConnectionsDelete).Methods("DELETE")
+	//routes.HandleFunc("/api/connections", ConnectionsRetrieve).Methods("GET")
 	http.Handle("/", routes)
 
 }
@@ -170,6 +183,27 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+//CheckSession Checks if there is a session of id sessionid in the request object.
+// If it does not exists it create a new one
+func CheckSession(w http.ResponseWriter, r *http.Request) bool {
+	cookieSession, err := r.Cookie("sessionid")
+	if err != nil {
+		fmt.Println("Creating a Cookie MemCached!")
+		Session.Create()
+		Session.Expire = time.Now().Local()
+		Session.Expire.Add(time.Hour)
+		Session.SetSession()
+		return false
+	}
+	fmt.Println("Found Cookies,Checking again Memcached!")
+	ValideSession, err := Session.GetSession(cookieSession.Value)
+	fmt.Println(ValideSession)
+	if err != nil {
+		return false
+	}
+	return true
+}
 func main() {
 	fmt.Println("gillons test")
 	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
@@ -198,5 +232,80 @@ func main() {
 		wg.Done()
 	}()
 	wg.Wait()
+
+}
+
+//ConnectionsCreate is a function that creates conncetions between users.A friendship relations.
+//This is just a rough implementation.
+func ConnectionsCreate(w http.ResponseWriter, r *http.Request) {
+	log.Println("starting retreival!!!")
+	var uid int
+	response := api.CreateResponse{}
+	authenticate := false
+	accessToken := r.FormValue("access_token")
+	if accessToken == "" {
+		authenticate = false
+	} else {
+		authenticate = true
+	}
+	loggedIn := CheckLogin(w, r)
+	if loggedIn == false {
+		authenticate = false
+		authenticateByPassword, uid := MiddleWareAuth(w, r)
+		if authenticateByPassword == true {
+			fmt.Println(uid)
+			authenticate = true
+		}
+	} else {
+		uid = Session.UID
+		authenticate = true
+	}
+
+	if authenticate == false {
+		Err := api.CompleteError{}
+		Err = api.ErrorMessage(401)
+		response.Error = Err.ErrorMsg
+		response.ErrorCode = Err.StatusCode
+		http.Error(w, Err.ErrorMsg, int(Err.StatusCode))
+		return
+	}
+	toUID := r.FormValue("recipient")
+	var count int
+	database.QueryRow("select count(*) as ucount from users where user_id = ?", toUID).Scan(&count)
+	if count < 1 {
+		fmt.Println("No such user Exists!")
+		Err := api.CompleteError{}
+		Err = api.ErrorMessage(410)
+		response.Error = Err.ErrorMsg
+		response.ErrorCode = Err.StatusCode
+		http.Error(w, Err.ErrorMsg, int(Err.StatusCode))
+		return
+	}
+	var ConnectionCount int
+	database.QueryRow("select count(*) as ccount from users_relationships"+
+		" where from_user_id = ? and to_user_id",
+		uid, toUID).Scan(&ConnectionCount)
+	if ConnectionCount > 0 {
+		fmt.Println("Relationship isapready extisting")
+		Err := api.CompleteError{}
+		Err = api.ErrorMessage(410)
+		response.Error = Err.ErrorMsg
+		response.ErrorCode = Err.StatusCode
+		http.Error(w, Err.ErrorMsg, int(Err.StatusCode))
+		return
+	}
+	fmt.Println("Creating relation!!")
+	rightNow := time.Now().Unix()
+	response.Error = "success"
+	response.ErrorCode = 0
+	_, err := database.Exec("insert into users_relationships set from_user = ?,to_user_id = ?,"+
+		"users_relationship_type = ?, users_relationship_timestamp = ?",
+		uid, toUID, "friend", rightNow)
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		output := api.SetFormat(response)
+		fmt.Fprintln(w, string(output))
+	}
 
 }
